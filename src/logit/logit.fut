@@ -1,9 +1,4 @@
 --- First some utility/boilerplate.
---
--- Before this will work, run
---
---   $ futhark pkg add github.com/diku-dk/cpprandom
---   $ futhark pkg sync
 
 import "lib/github.com/diku-dk/cpprandom/random"
 module rng = xorshift128plus
@@ -22,7 +17,7 @@ let rand_matrix (r: rng) (N: i64) (K: i64) =
                    |> rng.split_rng (N*K)
                    |> map (rand_f64.rand {mean=0, stddev=1})
                    |> unzip
-  in (rng.join_rng rngs, unflatten N K vs)
+  in (rng.join_rng rngs, unflatten vs)
 
 let dotprod xs ys = map2 (*) xs ys |> f64.sum
 
@@ -80,7 +75,7 @@ let neg_ll [N][Kx][Kz][J]
            (z: [Kz][J]f64)
            (d: [N]i64)
          : f64 =
-  let B = unflatten Kx Kz beta
+  let B = unflatten (beta:[Kx*Kz]f64)
   in -mean(loglikelihood x z d B)
 
 let simulate_demographics (rng: rng) (N: i64) (J: i64) (Kz: i64) (Kx: i64) =
