@@ -1,0 +1,5 @@
+require {
+  github.com/diku-dk/linalg 0.6.5 #d7e197834b26050add8c8b3d747cf61fa2762bbb
+  github.com/diku-dk/segmented 0.4.4 #9653ba17581771f0641d1f3f9618da6d9bc633de
+  github.com/diku-dk/sparse 0.0.17 #0232a3d9a13817ed97c92468095e57179af7332e
+}

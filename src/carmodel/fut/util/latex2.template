@@ -1,0 +1,89 @@
+\documentclass[acmsmall,screen,nonacm]{acmart}
+
+\setcopyright{rightsretained}
+\acmDOI{10.1017/xxxxx}
+\acmYear{2025}
+\copyrightyear{2025}
+\bibliographystyle{ACM-Reference-Format}
+\citestyle{plain}
+\usepackage{xcolor}
+$if(geometry)$
+\usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
+$endif$
+$if(cancel)$
+\usepackage{cancel}
+$endif$
+$--
+$-- section numbering
+$--
+$common.latex()$
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\},fontsize=\small}
+$for(header-includes)$
+$header-includes$
+$endfor$
+$after-header-includes.latex()$
+$hypersetup.latex()$
+$if(title)$
+\title{$title$$if(thanks)$\thanks{$thanks$}$endif$}
+$endif$
+$if(subtitle)$
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{$subtitle$}
+$endif$
+\author{$for(author)$$author$$sep$ \and $endfor$}
+\thanks{Technical Note, \today}
+\orcid{0000-0002-6061-5993}
+\affiliation{%
+  \department{Department of Computer Science}
+  \institution{University of Copenhagen}
+  \streetaddress{Universitetsparken 5}
+  \city{Copenhagen}
+  \country{Denmark}
+  \postcode{DK-2100}
+}
+\email{mael@di.ku.dk}
+
+\makeatletter
+\def\@xobeysp{\mbox{}\space}
+\def\verbatim@font{\normalfont\ttfamily\small\raggedright\leftskip\@totalleftmargin}
+\makeatother
+
+\begin{document}
+$if(has-frontmatter)$
+\frontmatter
+$endif$
+$if(title)$
+\maketitle
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+$endif$
+
+$body$
+
+$if(natbib)$
+$if(bibliography)$
+$if(biblio-title)$
+$if(has-chapters)$
+\renewcommand\bibname{$biblio-title$}
+$else$
+\renewcommand\refname{$biblio-title$}
+$endif$
+$endif$
+\bibliography{$for(bibliography)$$bibliography$$sep$,$endfor$}
+
+$endif$
+$endif$
+$if(biblatex)$
+\printbibliography$if(biblio-title)$[title=$biblio-title$]$endif$
+
+biblatex
+$endif$
+\end{document}
