@@ -1,0 +1,5 @@
+*.out
+*.tmavg
+*.exe.c
+data.dat
+plot1.pdf
