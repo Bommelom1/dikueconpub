@@ -88,6 +88,30 @@ entry test_carprice_buy [c] (n:i64) (newprices:[c]f64) (Ax:i64) : ?[nd].[nd]f64 
            |> flatten |> (\tr -> [#Keep] ++ tr ++ [#Purge])
   in map (trm.carprice_buy mp p) ds
 
+
+-- ==
+-- entry: test_acc_prob
+-- input { 2i64 2i64 3i64 }
+-- output { [0.00004539786f64,0.00004539786f64,0.00004539786f64,0.00004539786f64,0.00004539786f64,0.00004539786f64,0f64] }
+
+entry test_acc_prob (n:i64) (c:i64) (Ax:i64) : ?[ns].[ns]f64 =
+  let [ns][nd] mp : trm.mp [n][c][Ax][ns][nd] = trm.mk n c Ax
+  in trm.acc_prob mp
+
+-- ==
+-- entry: test_acc_prob_mat
+-- input { 2i64 2i64 2i64 }
+-- output { [ [0.0f64,0.00004539786f64,0f64,0f64,0f64],
+--            [0.0f64,0.00004539786f64,0f64,0f64,0f64],
+--            [0.0f64,0f64,0f64,0.00004539786f64,0f64],
+--            [0.0f64,0f64,0f64,0.00004539786f64,0f64],
+--            [0.0f64,0f64,0f64,0f64,0f64] ]}
+
+entry test_acc_prob_mat (n:i64) (c:i64) (Ax:i64) : ?[ns].[ns][ns]f64 =
+  let [ns][nd] mp : trm.mp [n][c][Ax][ns][nd] = trm.mk n c Ax
+  let mat = trm.acc_prob_mat mp
+  in trm.dense_acc_prob_mat mat
+
 -- ==
 -- entry: test_utility
 -- input { 2i64 [100f64,100f64] 2i64 }

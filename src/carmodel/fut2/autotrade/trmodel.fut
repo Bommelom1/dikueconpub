@@ -47,6 +47,14 @@ module type trmodel = {
 
   val simple_prices  [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> t -> prices[c][Ax]
 
+  -- accident probabilities
+  type acc_prob[ns] = [ns]t
+  type~  acc_prob_mat [ns] -- = sr.mat[ns][ns]
+  val acc_prob_j [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> i32 -> i32 -> t
+  val acc_prob [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> acc_prob[ns]
+  val acc_prob_mat [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> acc_prob_mat[ns]
+  val dense_acc_prob_mat [ns] : acc_prob_mat[ns] -> [ns][ns]t -- for testing purposes
+
   -- utilities of transitions
   type utility [ns][nd] = [ns][nd]t
   val utility        [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> prices[c][Ax]
@@ -104,7 +112,10 @@ module trmodel (R:real) : trmodel with t = R.t = {
       sigma_s         : t,
       ns              : [ns](),
       nd              : [nd](),
-      maxage          : [Ax]()
+      maxage          : [Ax](),
+      acc_0           : [c]t,
+      acc_a           : [c]t,
+      acc_even        : [c]t
      }
 
   def mk (n:i64) (c:i64) (Ax:i64) : ?[ns][nd].mp[n][c][Ax][ns][nd] =
@@ -121,7 +132,10 @@ module trmodel (R:real) : trmodel with t = R.t = {
      sigma_s         = R.f32 0.5,
      ns              = replicate (c*Ax+1) (),
      nd              = replicate (c*Ax+2) (),
-     maxage          = replicate Ax ()
+     maxage          = replicate Ax (),
+     acc_0           = replicate c (R.i32 (-10)),
+     acc_a           = replicate c (R.i32 0),
+     acc_even        = replicate c (R.i32 0)
      }
 
   -- some utilities
@@ -157,6 +171,9 @@ module trmodel (R:real) : trmodel with t = R.t = {
 
   type consumertype = i64
 
+
+  ------- Car prices
+
   type prices [c][Ax] = [Ax][c]t   -- c: ncartypes
 
   def simple_prices [n][c][Ax][ns][nd] (mp:mp [n][c][Ax][ns][nd]) (r:t) : prices [c][Ax] =
@@ -183,10 +200,14 @@ module trmodel (R:real) : trmodel with t = R.t = {
       assert (age >= 0 && age < Ax)  -- notice age < Ax!!
        (p[age,cartype])
 
+  ------- Car utility
+
   def u_car [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) (tau:consumertype) ({cartype,age}: car) : t =
     let () = assert (tau >= 0 && tau < n) ()
     in if age == Ax then R.nan
        else R.(mp.u_0[tau,cartype] + mp.u_a[tau,cartype] * i64 age+mp.u_a_sq[tau,cartype] * (i64 age)*(i64 age))
+
+  -------- Helper functions
 
   def nanmax2 (x:t) (y:t) : t =
     R.(if isnan x
@@ -219,6 +240,8 @@ module trmodel (R:real) : trmodel with t = R.t = {
                in nansum2 (f x) (f y) |> log |> (*sigma) |> (+ maxv)
          )
 
+  
+
   def ev_scrap [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) (p:prices[c][Ax])
                                   (tau:consumertype) (s:state) : t =
     let () = assert (tau >= 0 && tau < n) ()
@@ -233,6 +256,42 @@ module trmodel (R:real) : trmodel with t = R.t = {
        case #NoCar -> default()
        case #Car{age,cartype=_} -> if age == Ax then R.i32 0
                                    else default()
+
+  ------- Accident probabilities
+
+  type~ acc_prob_mat [ns] = sp.mat[ns][ns]
+  type acc_prob[ns] = [ns]t
+
+  --------- 
+  --------- Note that states are in order (car 1 age 0, ..., car c age ax-1, abar)
+  def acc_prob_j [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) (a:i32) (ct:i32) : t =
+    let mod = R.i32(1-a%2)
+    in R.(mp.acc_0[ct]+mp.acc_a[ct]*(R.i32 a)+mp.acc_even[ct]*mod)
+
+  def acc_prob [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) : acc_prob[ns] =
+    let accs =
+      (flatten (
+         tabulate_2d c Ax
+           (\ct a -> let mod = R.i64(1-a%2) in
+           R.((i64 1)/((i64 1)+exp((i64 0)-mp.acc_0[ct]-mp.acc_a[ct]*(R.i64 a)-mp.acc_even[ct]*mod)))  --- Turns out unary - does not work inside R.(...)
+           )
+       )
+      )
+    in (accs++[R.i64 0]):>[ns]t
+
+  def acc_prob_mat [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) : acc_prob_mat[ns] =
+    let accs : [ns]t = acc_prob mp
+    let next_accs : [ns]i64 =
+      (tabulate c (\j -> replicate Ax ((j+1)*Ax-1))  --- On accident, you gain an clunker of your car type
+       |> flatten
+       |> (++[ns-1]) -- the no car state
+      ) :> [ns]i64
+    in sp.sparse ns ns (zip3 (iota ns) (next_accs) accs)
+
+  def dense_acc_prob_mat [ns] (mat:acc_prob_mat[ns]) : [ns][ns]t =
+    sp.dense mat
+    
+
   ------------------------
   -- Definition of utility
   ------------------------
@@ -269,7 +328,8 @@ module trmodel (R:real) : trmodel with t = R.t = {
     )
 
   type utility [ns][nd] = [ns][nd]t
-
+  
+  ----- This might be a place to improve the speed of the code? Kinda likely to be harder to read, though
   def utility [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) (p:prices[c][Ax])
                                  (tau:consumertype) : utility[ns][nd] =
     -- notice: in decisions, car ages range from 0 to Ax-1 whereas
@@ -298,6 +358,8 @@ module trmodel (R:real) : trmodel with t = R.t = {
       ) :> [ns]t
     in transpose (([utils_keep] ++ utils_car ++ [utils_purge]) :> [nd][ns]t)
 
+  --------- Age transition matrices
+
   type~ transition [ns] = {trade:sp.mat[ns][ns], notrade:sp.mat[ns][ns]}
 
   def age_transition [n][c][Ax][ns][nd] (_:mp[n][c][Ax][ns][nd]) : transition[ns] =
@@ -318,6 +380,9 @@ module trmodel (R:real) : trmodel with t = R.t = {
 
   def vec_ev [n][c][Ax][ns][nd] (_:mp [n][c][Ax][ns][nd]) (v:ev[ns]) : [ns]t =
     v
+  
+
+  ------ Bellman functions
 
   def bellman0 [n][c][Ax][ns][nd]
                (mp:mp[n][c][Ax][ns][nd])
