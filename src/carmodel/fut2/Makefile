@@ -16,7 +16,7 @@ run_bellman:
 
 .PHONY: clean
 clean:
-	rm -rf *~ *.c run_bellman_ad run_bellman_j run_bellman run_bellman.fut.* run_bellman_ad.fut.* run_bellman_j.fut.* *.exe *.tm *.tmavg plot1.pdf plot1j.pdf plot1ad.pdf plot2.pdf plots.pdf data1.dat data2.dat *.out data1j.dat
+	rm -rf *~ *.c run_bellman_ad run_bellman_j run_bellman run_bellman.fut.* run_bellman_ad.fut.* run_bellman_j.fut.* *.exe *.tm *.tmavg plot1.pdf plot1j.pdf plot1ad.pdf plot2.pdf plots.pdf data1.dat data2.dat *.out data1j.dat data1ad.dat
 	$(MAKE) -C util clean
 	$(MAKE) -C autotrade clean
 
