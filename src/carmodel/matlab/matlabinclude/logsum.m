@@ -19,11 +19,11 @@ function logsum=logsum(v, sigma)
 		sigma=1
 	end
 
-	maxv=nanmax(v,[], 2);
+	maxv=max(v,[], 2, 'omitnan');
 	if sigma==0
 		logsum=maxv;
 		return
 	end
 	v=v- maxv;
-	logsum=maxv + sigma*log(nansum(exp(v/sigma),2));
+	logsum=maxv + sigma*log(sum(exp(v/sigma),2,'omitnan'));
 end % end logsum
