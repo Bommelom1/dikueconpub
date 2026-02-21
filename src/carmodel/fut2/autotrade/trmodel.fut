@@ -52,7 +52,7 @@ module type trmodel = {
   type~  acc_prob_mat [ns] -- = sr.mat[ns][ns]
   val acc_prob_j [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> i32 -> i32 -> t
   val acc_prob [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> acc_prob[ns]
-  val acc_prob_mat [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> acc_prob_mat[ns]
+  val acc_prob_mat [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> (acc_prob_mat[ns], acc_prob[ns])
   val dense_acc_prob_mat [ns] : acc_prob_mat[ns] -> [ns][ns]t -- for testing purposes
 
   -- utilities of transitions
@@ -279,14 +279,14 @@ module trmodel (R:real) : trmodel with t = R.t = {
       )
     in (accs++[R.i64 0]):>[ns]t
 
-  def acc_prob_mat [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) : acc_prob_mat[ns] =
+  def acc_prob_mat [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) : (acc_prob_mat[ns], acc_prob[ns]) =
     let accs : [ns]t = acc_prob mp
     let next_accs : [ns]i64 =
       (tabulate c (\j -> replicate Ax ((j+1)*Ax-1))  --- On accident, you gain an clunker of your car type
        |> flatten
        |> (++[ns-1]) -- the no car state
       ) :> [ns]i64
-    in sp.sparse ns ns (zip3 (iota ns) (next_accs) accs)
+    in (sp.sparse ns ns (zip3 (iota ns) (next_accs) accs), accs)
 
   def dense_acc_prob_mat [ns] (mat:acc_prob_mat[ns]) : [ns][ns]t =
     sp.dense mat
@@ -360,9 +360,9 @@ module trmodel (R:real) : trmodel with t = R.t = {
 
   --------- Age transition matrices
 
-  type~ transition [ns] = {trade:sp.mat[ns][ns], notrade:sp.mat[ns][ns]}
+  type~ transition [ns] = {trade:sp.mat[ns][ns], notrade:sp.mat[ns][ns], acc:sp.mat[ns][ns]}
 
-  def age_transition [n][c][Ax][ns][nd] (_:mp[n][c][Ax][ns][nd]) : transition[ns] =
+  def age_transition [n][c][Ax][ns][nd] (mp:mp[n][c][Ax][ns][nd]) : transition[ns] =
     let next_keep : [ns]i64 =
       (tabulate_2d c Ax (\j a ->
                            if a == Ax-1
@@ -371,8 +371,10 @@ module trmodel (R:real) : trmodel with t = R.t = {
        |> flatten
        |> (++[ns-1]) -- the keep state
       ) :> [ns]i64
+    let (acc_mats, _) :  (acc_prob_mat[ns], acc_prob[ns]) = acc_prob_mat mp
     in {trade = sp.eye ns ns,
-        notrade = sp.sparse ns ns (zip3 (iota ns) next_keep (replicate ns (R.i32 1)))}
+        notrade = sp.sparse ns ns (zip3 (iota ns) next_keep (replicate ns (R.i32 1))), -- replace with (map (x->R.i32 1-x) accs)
+        acc = sp.scale R.(i64 0- i64 1) acc_mats}
 
   type ev[ns] = [ns]t
   def ev0 [n][c][Ax][ns][nd] (_:mp [n][c][Ax][ns][nd]) : ev[ns] =

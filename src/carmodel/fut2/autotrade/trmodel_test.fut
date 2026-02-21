@@ -109,7 +109,7 @@ entry test_acc_prob (n:i64) (c:i64) (Ax:i64) : ?[ns].[ns]f64 =
 
 entry test_acc_prob_mat (n:i64) (c:i64) (Ax:i64) : ?[ns].[ns][ns]f64 =
   let [ns][nd] mp : trm.mp [n][c][Ax][ns][nd] = trm.mk n c Ax
-  let mat = trm.acc_prob_mat mp
+  let mat = trm.acc_prob_mat mp|> (.0)
   in trm.dense_acc_prob_mat mat
 
 -- ==
