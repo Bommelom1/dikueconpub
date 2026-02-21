@@ -72,9 +72,55 @@ entry test_trade (n:i64) (c:i64) (Ax:i64) : [][]f64 =
   in trm.age_transition mp |> trm.transition_trade
 
 -- ==
+-- entry: test_age_transition_dmsmm_notrade
+-- input { 1i64 2i64 3i64 }
+-- output { [ [ 0f64, 0.9999546f64, 0.00004539786f64, 0f64, 0f64, 0f64, 0f64 ],
+--            [ 0f64, 0f64, 1f64, 0f64, 0f64, 0f64, 0f64 ],
+--            [ 0.9999546f64, 0f64, 0.00004539786f64, 0f64, 0f64, 0f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0f64, 0.9999546f64, 0.00004539786f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0f64, 0f64, 1f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0.9999546f64, 0f64, 0.00004539786f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0f64, 0f64, 0f64, 1f64 ] ] }
+
+entry test_age_transition_dmsmm_notrade (n:i64) (c:i64) (Ax:i64) : [][]f64 =
+  let [ns][nd] mp : trm.mp [n][c][Ax][ns][nd] = trm.mk n c Ax
+  let eye = tabulate_2d ns ns (\i j -> if i==j then 1f64 else 0f64)
+  let trans = trm.age_transition mp
+  in trm.age_transition_dmsmm_notrade eye trans
+
+-- ==
+-- entry: test_age_transition_dmsmm_trade
+-- input { 1i64 2i64 3i64 }
+-- output { [ [ 0.9999546f64, 0f64, 0.00004539786f64, 0f64, 0f64, 0f64, 0f64 ],
+--            [ 0f64, 0.9999546f64, 0.00004539786f64, 0f64, 0f64, 0f64, 0f64 ],
+--            [ 0f64, 0f64, 1f64, 0f64, 0f64, 0f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0.9999546f64, 0f64, 0.00004539786f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0f64, 0.9999546f64, 0.00004539786f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0f64, 0f64, 1f64, 0f64 ],
+--            [ 0f64, 0f64, 0f64, 0f64, 0f64, 0f64, 1f64 ] ] }
+
+entry test_age_transition_dmsmm_trade (n:i64) (c:i64) (Ax:i64) : [][]f64 =
+  let [ns][nd] mp : trm.mp [n][c][Ax][ns][nd] = trm.mk n c Ax
+  let eye = tabulate_2d ns ns (\i j -> if i==j then 1f64 else 0f64)
+  let trans = trm.age_transition mp
+  in trm.age_transition_dmsmm_trade eye trans
+
+-- ==
+-- entry: test_age_transition_vsmm_trade
+-- input { 1i64 2i64 3i64 }
+-- output { [ 0.9999546f64, 0.9999546f64, 1.00009079572f64, 0.9999546f64, 0.9999546f64, 1.00009079572f64, 1f64 ] }
+
+entry test_age_transition_vsmm_trade (n:i64) (c:i64) (Ax:i64) : []f64 =
+  let [ns][nd] mp : trm.mp [n][c][Ax][ns][nd] = trm.mk n c Ax
+  let eye = replicate ns 1f64
+  let trans = trm.age_transition mp
+  in trm.age_transition_vsmm_trade eye trans
+
+-- ==
 -- entry: test_carprice_sell
 -- input { 2i64 [100f64,100f64] 2i64 }
 -- output { [85f64, 1f64, 85f64, 1f64, 0f64] }
+
 
 entry test_carprice_sell [c] (n:i64) (newprices:[c]f64) (Ax:i64) : ?[ns].[ns]f64 =
   let [ns][nd] mp : trm.mp [n][c][Ax][ns][nd] = trm.mk n c Ax

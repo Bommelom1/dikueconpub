@@ -63,6 +63,11 @@ module type trmodel = {
   type~ transition [ns] -- = {trade:sp.mat[ns][ns], notrade:sp.mat[ns][ns]}
   val age_transition [n][c][Ax][ns][nd] : mp[n][c][Ax][ns][nd] -> transition[ns]
 
+  val age_transition_dmsmm_notrade [k] [ns] : [k][ns]t -> transition[ns] -> [k][ns]t
+  val age_transition_dmsmm_trade [k] [ns] : [k][ns]t -> transition[ns] -> [k][ns]t
+  val age_transition_vsmm_notrade [ns] : [ns]t -> transition[ns] -> [ns]t
+  val age_transition_vsmm_trade [ns] : [ns]t -> transition[ns] -> [ns]t
+
   -- expected values
   type ev[ns] = [ns]t
   val ev0            [n][c][Ax][ns][nd] : mp [n][c][Ax][ns][nd] -> ev[ns]
@@ -384,6 +389,18 @@ module trmodel (R:real) : trmodel with t = R.t = {
 
   def vec_ev [n][c][Ax][ns][nd] (_:mp [n][c][Ax][ns][nd]) (v:ev[ns]) : [ns]t =
     v
+
+  def age_transition_dmsmm_trade [k] [ns] (mat:[k][ns]t) (transition:transition[ns]) : [k][ns]t =
+    map2 (map2 (\x y -> R.(x + y))) (sp.dmsmm mat transition.trade) (sp.dmsmm mat transition.acc) 
+
+  def age_transition_dmsmm_notrade [k] [ns] (mat:[k][ns]t) (transition:transition[ns]) : [k][ns]t =
+    map2 (map2 (\x y -> R.(x + y))) (sp.dmsmm mat transition.notrade) (sp.dmsmm mat transition.acc) 
+
+  def age_transition_vsmm_trade [ns] (vct:[ns]t) (transition:transition[ns]) : [ns]t =
+    map2 (\x y->R.(x + y)) (sp.vsmm vct transition.trade) (sp.vsmm vct transition.acc) 
+
+  def age_transition_vsmm_notrade [ns] (vct:[ns]t) (transition:transition[ns]) : [ns]t =
+    map2 (\x y->R.(x + y)) (sp.vsmm vct transition.notrade) (sp.vsmm vct transition.acc) 
   
 
   ------ Bellman functions
@@ -455,7 +472,6 @@ module trmodel (R:real) : trmodel with t = R.t = {
       map2 (\r x -> map (R.exp <-< (R./ mp.sigma) <-< (R.- x)) r) v ev1
     let ccp = map (map (\x -> if R.isnan x then R.i64 0 else x)) ccp
     let delta : [ns][ns]t = trade_transition mp ccp
-    --let dev = sp.dmsmm delta F.notrade |> map (map (R.* mp.bet))
     let dev = sp.scale mp.bet F.notrade |> sp.dmsmm delta
     in (ev1,dev)
 
